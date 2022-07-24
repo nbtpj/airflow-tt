@@ -9,7 +9,6 @@ from airflow.operators.python_operator import PythonOperator
 
 
 class CrawlerWithSaver(BaoMoiSpider):
-
     @staticmethod
     def save(new: New):
         return save_new_to_raw_table(DATABASE_CONN, config.raw_table_name, new)
@@ -40,6 +39,8 @@ def crawl():
     return True
 
 
+'''
+Thay đổi các tham số này để lên lịch mong muốn'''
 default_args = {
     'owner': 'Minh Quang',
     'depends_on_past': False,
@@ -55,8 +56,11 @@ with DAG(
         'scrapy_flow',
         default_args=default_args,
         description='Scrapy DAG',
-        schedule_interval=timedelta(days=1),
+        schedule_interval=timedelta(weeks=1),
 ) as dag:
+    """
+    Định nghĩa task đơn giản
+    """
     crawl_task = PythonOperator(task_id="crawler",
                                 python_callable=crawl,
                                 dag=dag)

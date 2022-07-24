@@ -136,5 +136,19 @@ db_connection_config = {
 # Getting started
 
 Đăng nhập vào màn hình Web UI tại [Airflow Web UI](localhost:8080) để xem và khởi chạy DAG.
+
 Đăng nhập vào màn hình Celery UI tại [Celery Web UI](localhost:5555) để xem và quản lý các Celery.
+
+Tên đăng nhập: airflow
+Mật khẩu: airflow
+
+# Kiểm tra dữ liệu
+Đăng nhập vào Postgres cli
+```bash
+psql -U airflow -P airflow
+```
+Kiểm tra dữ liệu:
+```sql
+SELECT COUNT(*) FROM crawl_raw;
+```
 

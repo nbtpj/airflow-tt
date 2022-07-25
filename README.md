@@ -140,8 +140,11 @@ db_connection_config = {
 Đăng nhập vào màn hình Celery UI tại [Celery Web UI](localhost:5555) để xem và quản lý các Celery.
 
 Tên đăng nhập: airflow
+
 Mật khẩu: airflow
 
+![](screenshots/Screenshot 2022-07-25 171855.png) 
+![](screenshots/Screenshot 2022-07-25 171937.png) 
 # Kiểm tra dữ liệu
 Đăng nhập vào Postgres cli
 ```bash

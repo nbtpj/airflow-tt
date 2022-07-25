@@ -1,21 +1,25 @@
 import datetime
 import json
 import logging
-from typing import List, Iterable, Any
+from typing import List, Any, Iterable, Dict
 import pandas as pd
 import pendulum
 from airflow.decorators import dag, task
 
-from db_plugin import DATABASE_CONN, PAGING_CONN, execute_or_log
+from db_plugin import DATABASE_CONN, execute_or_log
 import config
 
 
 def scan(dir, pattern):
-    from os import listdir
+    from os import walk
     from os.path import isfile, join
     import re
-    log_dirs = [join(dir, f) for f in listdir(dir) if
-                bool(re.search(pattern, join(dir, f))) and isfile(join(dir, f))]
+    log_dirs = []
+    for root, dirs, files in walk(dir, topdown=True):
+        for file_name in files:
+            path = join(root, file_name)
+            if bool(re.search(pattern, path)):
+                log_dirs.append(path)
     return log_dirs
 
 
@@ -46,9 +50,9 @@ def insert2songplays(record):
     command_insert = ''
     with DATABASE_CONN.cursor() as curs:
         command_insert = curs.mogrify(
-            f'INSERT INTO {config.fact_table}(start_time, user_id, "level", song_id, artist_id, session_id, location, user_agent) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s);',
+            f'INSERT INTO {config.fact_table}(start_time, user_id, "level", song_id, artist_id, session_id, location, user_agent) VALUES(%s, %s, %s, %s, %s, %s, %s, %s);',
             (
-                str(pd.to_datetime(int(record['ts']), utc=True, unit='ms')) if 'ts' in record else None,
+                str(pd.to_datetime(record['ts'], utc=True, unit='ms')) if 'ts' in record else None,
                 record['userId'] if 'userId' in record else None,
                 record['level'] if 'level' in record else None,
                 record['song_id'] if 'song_id' in record else None,
@@ -64,7 +68,7 @@ def insert2songs(record):
     command_insert = ''
     with DATABASE_CONN.cursor() as curs:
         command_insert = curs.mogrify(
-            f'INSERT INTO {config.dimension_tables[1]}(song_id, title, artist_id, "year", duration) VALUES(%s, %s, %s, %d, %f);',
+            f'INSERT INTO {config.dimension_tables[1]}(song_id, title, artist_id, "year", duration) VALUES(%s, %s, %s, %s, %s);',
             (
                 record['song_id'] if 'song_id' in record else None,
                 record['title'] if 'title' in record else None,
@@ -79,7 +83,7 @@ def insert2artists(record):
     command_insert = ''
     with DATABASE_CONN.cursor() as curs:
         command_insert = curs.mogrify(
-            f'INSERT INTO {config.dimension_tables[2]}(artist_id, name, location, latitude, longitude) VALUES(%s, %s, %s, %f, %f);',
+            f'INSERT INTO {config.dimension_tables[2]}(artist_id, name, location, latitude, longitude) VALUES(%s, %s, %s, %s, %s);',
             (
                 record['artist_id'] if 'artist_id' in record else None,
                 record['artist_name'] if 'artist_name' in record else None,
@@ -189,7 +193,7 @@ def data_mart_builder():
         return True
 
     @task()
-    def scan_log(dir: str = '/data/log_data', pattern: str = 'events.json') -> List[str]:
+    def scan_log(init_stage: bool, dir: str = '/opt/airflow/data/log_data', pattern: str = 'events.json') -> List[str]:
         """
         #### Scan log files
         This task contains:
@@ -201,7 +205,7 @@ def data_mart_builder():
         return scan(dir, pattern)
 
     @task()
-    def scan_song(dir: str = '/data/song_data', pattern: str = '.json') -> List[str]:
+    def scan_song(init_stage: bool, dir: str = '/opt/airflow/data/song_data', pattern: str = '.json') -> List[str]:
         """
         #### Scan song files
         This task contains:
@@ -213,21 +217,23 @@ def data_mart_builder():
         return scan(dir, pattern)
 
     @task()
-    def collect_log(log_dir: str) -> List[Any]:
+    def collect_log(log_dir: str) -> List[Dict]:
         """
-        #### Extract data from log files then store in cache
+        #### Extract data from log files then store in data warehouse (user)
         Perform a single mapping from log file into row in data warehouse table
         :param log_dir:
         :return: List of parsable items
         """
+        rs = []
         for record in collect(log_dir):
             insert2users(record)
-        return True
+            rs.append(record)
+        return rs
 
     @task()
-    def collect_song(song_dir: str) -> List[Any]:
+    def collect_song(song_dir: str) -> Any:
         """
-        #### Extract  data from song files then store in cache
+        #### Extract  data from song files then store in warehouse (songs & artists)
         Perform a single mapping from log file into row in data warehouse table
         :param song_dir:
         :return: List of parsable items
@@ -235,17 +241,38 @@ def data_mart_builder():
         for record in collect(song_dir):
             insert2songs(record)
             insert2artists(record)
-        return True
+            return record
+        return {}
 
     @task()
-    def collectSongPlay():
-        pass
+    def collectSongPlay(previous_state, l_records):
+        """
+        #### Extract  data from song files then store in warehouse (songplays)
+        :param previous_state:
+        :param l_records:
+        :return:
+        """
+        for records in l_records:
+            for record in records:
+                data_from_db = {}
+                try:
+                    with DATABASE_CONN.cursor() as curs:
+                        command_get = curs.mogrify(f"SELECT * FROM {config.dimension_tables[1]} WHERE title=%s", (record['song']))
+                        data_from_db = curs.execute(command_get)
+                        if data_from_db is not None:
+                            data_from_db = data_from_db.fetchone()[0]
+                except Exception as e:
+                    logging.error(f'[{datetime.datetime.now().isoformat()}] Can not fetch: {e.__str__()}')
+                if data_from_db is not None:
+                    for k, v in data_from_db.items():
+                        record[k] = v
+                insert2songplays(record)
 
-    init()
-    log_dirs = scan_log()
-    song_dirs = scan_song()
-    collect_log.expand(log_dir=log_dirs)
-    collect_song.expand(song_dir=song_dirs)
+    t = init()
+    log_dirs = scan_log(t)
+    song_dirs = scan_song(t)
+    collectSongPlay(previous_state=collect_song.expand(song_dir=song_dirs),
+                    l_records=collect_log.expand(log_dir=log_dirs))
 
 
 dag_ = data_mart_builder()

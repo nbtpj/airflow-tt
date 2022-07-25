@@ -149,6 +149,14 @@ psql -U airflow -P airflow
 ```
 Kiểm tra dữ liệu:
 ```sql
-SELECT COUNT(*) FROM crawl_raw;
+SELECT COUNT(*) FROM crawl_raw LIMIT 10;
+
+SELECT COUNT(*) FROM songs LIMIT 10;
+
+SELECT COUNT(*) FROM artirts LIMIT 10;
+
+SELECT COUNT(*) FROM users LIMIT 10;
+
+SELECT COUNT(*) FROM songplays LIMIT 10;
 ```
 

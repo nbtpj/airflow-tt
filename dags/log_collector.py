@@ -1,7 +1,7 @@
 import datetime
 import json
 import logging
-from typing import List, Any, Iterable, Dict
+from typing import List, Any, Dict
 import pandas as pd
 import pendulum
 from airflow.decorators import dag, task

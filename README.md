@@ -153,7 +153,7 @@ SELECT * FROM crawl_raw LIMIT 10;
 
 SELECT * FROM songs LIMIT 10;
 
-SELECT * FROM artirts LIMIT 10;
+SELECT * FROM artists LIMIT 10;
 
 SELECT * FROM users LIMIT 10;
 

@@ -16,7 +16,7 @@ Môi trường cài đặt bao gồm các service (máy ảo):
 * **Service (máy) thực thi airflow**: 1 web server, 1 airflow scheduler, 2 máy worker và 1 máy flower (quản lý celery)
 * **Service (máy) khởi tạo airflow**: 1 máy sử dụng cho việc khởi tạo user, password.
 
-> các máy airflow sử dụng chung cấu hình và 3 thư mục :```./dag```,
+> các máy airflow sử dụng chung cấu hình và 3 thư mục :```./dag```,```./data```
 > ```.logs``` và ```./plugins```
 
 Để tạo môi trường sử dụng câu lệnh sau:

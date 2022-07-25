@@ -257,7 +257,10 @@ def data_mart_builder():
                 data_from_db = {}
                 try:
                     with DATABASE_CONN.cursor() as curs:
-                        command_get = curs.mogrify(f"SELECT * FROM {config.dimension_tables[1]} WHERE title=%s", (record['song']))
+                        command_get = curs.mogrify(
+                            f'SELECT * FROM {config.dimension_tables[1]} WHERE title = %s;',
+                            (record['song'] if 'song' in record and record['song'] else None,))
+                        logging.info(command_get)
                         data_from_db = curs.execute(command_get)
                         if data_from_db is not None:
                             data_from_db = data_from_db.fetchone()[0]

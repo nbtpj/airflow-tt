@@ -145,7 +145,7 @@ Mật khẩu: airflow
 # Kiểm tra dữ liệu
 Đăng nhập vào Postgres cli
 ```bash
-psql -U airflow -P airflow
+psql -U airflow -W airflow
 ```
 Kiểm tra dữ liệu:
 ```sql

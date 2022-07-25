@@ -11,7 +11,7 @@ class BaoMoiSpider(SitemapSpider):
     sitemap_urls = ['https://baomoi.com/robots.txt']
     start_urls = ['https://baomoi.com']
     sitemap_rules = [(r'/tag/', 'parse_tag'), (r'^((?!/tag/).)*$', 'parse_new'), ]
-    pattern_config = config.pattern_config
+    pattern_config = config.scrapy_pattern_config
 
     def parse_tag(self, response):
         return parse_tags(response, **self.pattern_config)

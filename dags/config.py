@@ -1,4 +1,4 @@
-pattern_config = {
+scrapy_pattern_config = {
     'title_pattern': 'title::text',
     'abstract_pattern': 'h3.bm_Ak::text',
     'body_pattern': '.bm_FO ::text',
@@ -11,6 +11,13 @@ pattern_config = {
     'author_pattern': 'div.bm_FO > p.bm_W.bm_FR > strong::text',
     'next_urls_pattern': '.bm_Ah a::attr(href)'
 }
+scrapy_table = 'crawl_raw'
+
+fact_table = 'songplays'
+
+# WARNING!: MUST NOT change the order of these name
+dimension_tables = ['users', 'songs', 'artists', 'time']
+paging_tables = ['song_temp', 'session_temp']
 
 db_connection_config = {
     'host': 'postgres',
@@ -20,5 +27,13 @@ db_connection_config = {
     'port': 5432
 }
 
-raw_table_name = 'crawl_raw'
-processed_table_name = 'crawl_processed'
+paging_connection_config = {
+    'host': 'redis',
+    'port': 6379,
+    'db': 0
+}
+
+author = {
+    'owner': 'Minh Quang',
+    'email': ['19020405@vnu.edu.vn'],
+}

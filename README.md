@@ -143,8 +143,8 @@ Tên đăng nhập: airflow
 
 Mật khẩu: airflow
 
-![](screenshots/Screenshot 2022-07-25 171855.png) 
-![](screenshots/Screenshot 2022-07-25 171937.png) 
+<img src="./screenshots/Screenshot 2022-07-25 171855.png" width="40%"> <img src="./screenshots/Screenshot 2022-07-25 171937.png" width="40%"> 
+
 # Kiểm tra dữ liệu
 Đăng nhập vào Postgres cli
 ```bash

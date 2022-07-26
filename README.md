@@ -163,5 +163,7 @@ SELECT * FROM artists LIMIT 10;
 SELECT * FROM users LIMIT 10;
 
 SELECT * FROM songplays LIMIT 10;
+
+SELECT * FROM time LIMIT 10;
 ```
 

@@ -40,7 +40,7 @@ version: '3'
 x-airflow-common:
   # image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:latest}
   &airflow-common
-  build: .
+  image: millim224/airflow:latest
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor

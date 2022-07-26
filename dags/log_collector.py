@@ -5,6 +5,7 @@ from typing import List, Any, Dict
 import pandas as pd
 import pendulum
 from airflow.decorators import dag, task
+from airflow.operators.python import get_current_context
 
 from db_plugin import DATABASE_CONN, execute_or_log
 import config
@@ -94,6 +95,30 @@ def insert2artists(record):
     return execute_or_log(DATABASE_CONN, command_insert)
 
 
+def insert2time(record):
+    command_insert = ''
+    timestamp = None
+    try:
+        timestamp = pd.to_datetime(record['ts'], utc=True, unit='ms') if 'ts' in record else None
+    except Exception as e:
+        logging.warning(f'can not parse time: Error {str(e)}')
+        pass
+    if timestamp is not None:
+        with DATABASE_CONN.cursor() as curs:
+            command_insert = curs.mogrify(
+                f'INSERT INTO {config.dimension_tables[-1]}(start_time,"hour" ,"day" ,"week" ,"month" ,"year" ,"weekda") VALUES(%s, %s, %s, %s, %s, %s, %s);',
+                (
+                    str(timestamp),
+                    str(timestamp.hour),
+                    str(timestamp.daysinmonth),
+                    str(timestamp.weekofyear),
+                    str(timestamp.month),
+                    str(timestamp.year),
+                    str(timestamp.weekday())
+                ))
+    return execute_or_log(DATABASE_CONN, command_insert)
+
+
 @dag(
     default_args=config.author,
     # the period that a dag should last
@@ -152,6 +177,15 @@ def data_mart_builder():
                          f'latitude  FLOAT, '
                          f'longitude FLOAT'
                          f')')
+            curs.execute(f'CREATE TABLE IF NOT EXISTS {config.dimension_tables[-1]} ('
+                         f'start_time TIMESTAMP PRIMARY KEY, '
+                         f'"hour" INT, '
+                         f'"day" INT, '
+                         f'"week"  INT, '
+                         f'"month" INT, '
+                         f'"year" INT,'
+                         f'"weekda" VARCHAR (10)'
+                         f')')
             """
             Setup paging data table
             """
@@ -202,6 +236,9 @@ def data_mart_builder():
         :param pattern: log file directory pattern, use for matching
         :return:
         """
+        if 'scan_log__dir' in get_current_context():
+            dir = get_current_context()['scan_log__dir']
+
         return scan(dir, pattern)
 
     @task()
@@ -214,6 +251,8 @@ def data_mart_builder():
         :param pattern: log file directory pattern, use for matching
         :return:
         """
+        if 'scan_song__dir' in get_current_context():
+            dir = get_current_context()['scan_song__dir']
         return scan(dir, pattern)
 
     @task()
@@ -227,6 +266,7 @@ def data_mart_builder():
         rs = []
         for record in collect(log_dir):
             insert2users(record)
+            insert2time(record)
             rs.append(record)
         return rs
 
